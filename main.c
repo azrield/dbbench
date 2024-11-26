@@ -571,6 +571,7 @@ static void killdb() {
 	} else {
 		char cmd[200];
 		sprintf(cmd, "rm -rf %s", FLAGS_db);
+//		fprintf(stdout, "Executing cmd: %s\n", cmd);
 		if (system(cmd)) exit(1);
 	}
 }
@@ -738,9 +739,12 @@ int main2(int argc, char *argv[]) {
 			dir = dirbuf;
 			sprintf(dirbuf, "/tmp/dbbench-%d", geteuid());
 		}
+//		fprintf(stderr, "mkdir: %s\n", dir);
 		mkdir(dir, 0775);
 		strcat(dirbuf, "/");
 		strcat(dirbuf, dbb_backend->db_name);
+//		fprintf(stderr, "dir: %s, dirbuf: %s, dbb_backend->db_name: %s, "
+//		        "FLAGS_db: %s\n", dir, dirbuf, dbb_backend->db_name, FLAGS_db);
 		FLAGS_db = dir;
 	}
 
@@ -750,6 +754,9 @@ int main2(int argc, char *argv[]) {
 		rc = stat(FLAGS_db, &st);
 		if (rc == 0 && (S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode)))
 			FLAGS_rawdev = 1;
+
+//        fprintf(stderr, "dbb_backend->db_name: %s, FLAGS_db: %s\n",
+//                dbb_backend->db_name, FLAGS_db);
 	}
 
 	if (!FLAGS_max_threads)

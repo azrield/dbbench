@@ -31,17 +31,18 @@ using namespace tkrzw;
 // Configuration flags for Tkrzw options
 static int FLAGS_write_buffer_size = 0;
 static int FLAGS_max_file_size = 0;
-static int FLAGS_cache_size = -1;
+static int FLAGS_cache_size = 1;
 static int FLAGS_open_files = 0;
 
 static DBM* db = nullptr;
 
 static void db_open(int dbflags) {
-    HashDBM* hash_db = new HashDBM();  // Change this to TreeDBM or SkipDBM if needed
+    HashDBM* hash_db = new HashDBM(/*std::make_unique<PositionalParallelFile>()*/);  // Change this to TreeDBM or SkipDBM if needed
 
     HashDBM::TuningParameters params;
     params.update_mode = HashDBM::UPDATE_IN_PLACE;
     params.cache_buckets = FLAGS_cache_size > 0 ? FLAGS_cache_size : -1;
+    params.num_buckets = 1000000;
 
     Status s = hash_db->OpenAdvanced(FLAGS_db, true, File::OPEN_TRUNCATE, params).OrDie();
     if (!s.IsOK()) {
@@ -49,6 +50,7 @@ static void db_open(int dbflags) {
         delete hash_db;
         exit(1);
     }
+//    fprintf(stdout, "Opened DB: %s\n", FLAGS_db);
     db = hash_db;
 }
 
@@ -111,9 +113,6 @@ static void db_read(DBB_local *dl) {
         if (s.IsOK()) {
             bytes += FLAGS_key_size + value.size();
             found++;
-        } else if (s == Status::NOT_FOUND_ERROR) {
-            fprintf(stderr, "Read error: %s\n", s.GetMessage().c_str());
-            exit(1);
         }
         DBB_opdone(dl);
     } while (!DBB_done(dl));
@@ -142,7 +141,7 @@ static arg_desc db_opts[] = {
 // Define Tkrzw backend for DBBench
 static DBB_backend db_tkrzw = {
     "tkrzw",
-    "Tkrzw",
+    "tkrzw-1.0.32",
     db_opts,
     db_verstr,
     db_open,
