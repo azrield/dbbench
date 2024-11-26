@@ -40,7 +40,7 @@ static void db_open(int dbflags) {
     HashDBM* hash_db = new HashDBM(/*std::make_unique<PositionalParallelFile>()*/);  // Change this to TreeDBM or SkipDBM if needed
 
     HashDBM::TuningParameters params;
-    params.update_mode = HashDBM::UPDATE_IN_PLACE;
+    params.update_mode = HashDBM::UPDATE_APPENDING;
     params.cache_buckets = FLAGS_cache_size > 0 ? FLAGS_cache_size : -1;
     params.num_buckets = 1000000;
 

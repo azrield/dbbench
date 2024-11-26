@@ -12,8 +12,8 @@ BINDIR = bin
 TESTS = $(BINDIR)/t_tkrzw
 
 OPT = -O2 -DNDEBUG
-CC = gcc -pthread
-CXX = g++ -pthread
+CC = gcc -pthread -g -DNDEBUG
+CXX = g++ -pthread -g -DNDEBUG
 CFLAGS = $(OPT) -I/usr/local/include/tkrzw/
 
 all: $(BINDIR) $(TESTS)

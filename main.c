@@ -730,57 +730,57 @@ int main2(int argc, char *argv[]) {
 	int i, aret;
 	arg_setup(main_args, dbb_backend->db_args);
 
-	while ((aret = arg_process(argc, argv)) >= 0) {
+	while ((aret = arg_process(argc, argv)) > 0) {
 
-	/* Choose a location for the test database if none given with --db=<path> */
-	if (FLAGS_db == NULL) {
-		char *dir = getenv("TEST_TMPDIR");
-		if (!dir) {
-			dir = dirbuf;
-			sprintf(dirbuf, "/tmp/dbbench-%d", geteuid());
-		}
-//		fprintf(stderr, "mkdir: %s\n", dir);
-		mkdir(dir, 0775);
-		strcat(dirbuf, "/");
-		strcat(dirbuf, dbb_backend->db_name);
-//		fprintf(stderr, "dir: %s, dirbuf: %s, dbb_backend->db_name: %s, "
-//		        "FLAGS_db: %s\n", dir, dirbuf, dbb_backend->db_name, FLAGS_db);
-		FLAGS_db = dir;
-	}
+	    /* Choose a location for the test database if none given with --db=<path> */
+	    if (FLAGS_db == NULL) {
+	        char *dir = getenv("TEST_TMPDIR");
+	        if (!dir) {
+	            dir = dirbuf;
+	            sprintf(dirbuf, "/tmp/dbbench-%d", geteuid());
+	        }
+	        //		fprintf(stderr, "mkdir: %s\n", dir);
+	        mkdir(dir, 0775);
+	        strcat(dirbuf, "/");
+	        strcat(dirbuf, dbb_backend->db_name);
+	        //		fprintf(stderr, "dir: %s, dirbuf: %s, dbb_backend->db_name: %s, "
+	        //		        "FLAGS_db: %s\n", dir, dirbuf, dbb_backend->db_name, FLAGS_db);
+	        FLAGS_db = dir;
+	    }
 
-	{
-		struct stat st;
-		int rc;
-		rc = stat(FLAGS_db, &st);
-		if (rc == 0 && (S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode)))
-			FLAGS_rawdev = 1;
+	    {
+	        struct stat st;
+	        int rc;
+	        rc = stat(FLAGS_db, &st);
+	        if (rc == 0 && (S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode)))
+	            FLAGS_rawdev = 1;
 
-//        fprintf(stderr, "dbb_backend->db_name: %s, FLAGS_db: %s\n",
-//                dbb_backend->db_name, FLAGS_db);
-	}
+	        //        fprintf(stderr, "dbb_backend->db_name: %s, FLAGS_db: %s\n",
+	        //                dbb_backend->db_name, FLAGS_db);
+	    }
 
-	if (!FLAGS_max_threads)
-		FLAGS_max_threads = FLAGS_threads;
+	    if (!FLAGS_max_threads)
+	        FLAGS_max_threads = FLAGS_threads;
 
-	if (!seeds)
-		/* Set up an extra randctx */
-		seeds = calloc(FLAGS_max_threads+1, sizeof(rndctx *));
-	for (i=0; i<FLAGS_max_threads+1; i++)
-		if (!seeds[i]) seeds[i] = DBB_randctx();
-	DBB_srandom(seeds[0], 0);
-	for (i=1; i<FLAGS_threads+1; i++)
-		DBB_randjump(seeds[i-1], seeds[i]);
+	    if (!seeds)
+	        /* Set up an extra randctx */
+	        seeds = calloc(FLAGS_max_threads+1, sizeof(rndctx *));
+	    for (i=0; i<FLAGS_max_threads+1; i++)
+	        if (!seeds[i]) seeds[i] = DBB_randctx();
+	    DBB_srandom(seeds[0], 0);
+	    for (i=1; i<FLAGS_threads+1; i++)
+	        DBB_randjump(seeds[i-1], seeds[i]);
 
-	if (!hists)
-		hists = calloc(FLAGS_max_threads+1, sizeof(Hstctx *));
-	for (i=0; i<FLAGS_max_threads+1; i++)
-		if (!hists[i]) hists[i] = DBB_hstctx();
-	for (i=0; i<FLAGS_threads+1; i++)
-		DBB_hstinit(hists[i]);
+	    if (!hists)
+	        hists = calloc(FLAGS_max_threads+1, sizeof(Hstctx *));
+	    for (i=0; i<FLAGS_max_threads+1; i++)
+	        if (!hists[i]) hists[i] = DBB_hstctx();
+	    for (i=0; i<FLAGS_threads+1; i++)
+	        DBB_hstinit(hists[i]);
 
-	Benchmark();
-	if (!aret)
-		break;
+	    Benchmark();
+	    if (!aret)
+	        break;
 	}
 	if (db_open)
 		dbb_backend->db_close();
