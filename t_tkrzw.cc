@@ -44,7 +44,9 @@ static void db_open(int dbflags) {
     params.cache_buckets = FLAGS_cache_size > 0 ? FLAGS_cache_size : -1;
     params.num_buckets = 1000000;
 
-    Status s = hash_db->OpenAdvanced(FLAGS_db, true, File::OPEN_TRUNCATE, params).OrDie();
+    Status s = hash_db->OpenAdvanced(FLAGS_db, true,
+            FLAGS_use_existing_db ? File::OPEN_DEFAULT : File::OPEN_TRUNCATE,
+                    params).OrDie();
     if (!s.IsOK()) {
         fprintf(stderr, "Open error: %s\n", s.GetMessage().c_str());
         delete hash_db;
