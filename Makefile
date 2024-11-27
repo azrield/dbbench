@@ -64,7 +64,7 @@ $(BINDIR)/t_lmdb: dbb.o t_lmdb.o
 $(BINDIR)/t_tkrzw: dbb.o t_tkrzw.o
 	$(CXX) -o $@ $^ ../tkrzw/tkrzw-1.0.32/libtkrzw.a -ldl -lsnappy -lz
 t_tkrzw.o: t_tkrzw.cc
-	$(CXX) -std=c++17 -c $(CFLAGS) -I/usr/local/include $^
+	$(CXX) -std=c++20 -c $(CFLAGS) -I/usr/local/include $^
 
 $(BINDIR)/t_badger: t_badger/t_badger
 	cp t_badger/t_badger $(BINDIR)

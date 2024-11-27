@@ -94,6 +94,9 @@ int FLAGS_rawdev = 0;
 // Maximum number of threads.
 int FLAGS_db_shards = 1;
 
+// underlying DB type
+int FLAGS_use_btree_db = 0;
+
 // Use the db with the following name.
 const char* FLAGS_db = NULL;
 
@@ -391,7 +394,8 @@ static void PrintHeader() {
 			(int)(FLAGS_value_size * FLAGS_compression_ratio + 0.5));
 	fprintf(stdout, "Entries:	%ld\n", FLAGS_num);
 	if(FLAGS_db_shards > 1)
-	    fprintf(stdout, "DB Shards:   %ld\n", FLAGS_db_shards);
+	    fprintf(stdout, "DB Shards:   %d\n", FLAGS_db_shards);
+	fprintf(stdout, "DB type:   %s\n", FLAGS_use_btree_db ? "TreeDBM" : "HashDBM");
 	fprintf(stdout, "RawSize:	%.1f MB (estimated)\n",
 			(((int64_t)(FLAGS_key_size + FLAGS_value_size) * FLAGS_num)
 			 / 1048576.0));
@@ -726,6 +730,7 @@ static arg_desc main_args[] = {
 	{ "value_size", arg_int, &FLAGS_value_size },
 	{ "key_size", arg_int, &FLAGS_key_size },
 	{ "shards", arg_int, &FLAGS_db_shards },
+	{ "use_btree", arg_onoff, &FLAGS_use_btree_db },
 	{ "db", arg_string, &FLAGS_db },
 	{ NULL }
 };
@@ -749,6 +754,8 @@ int main2(int argc, char *argv[]) {
 	        mkdir(dir, 0775);
 	        strcat(dirbuf, "/");
 	        strcat(dirbuf, dbb_backend->db_name);
+	        if(FLAGS_db_shards > 1)
+	            strcat(dirbuf, "*");
 	        //		fprintf(stderr, "dir: %s, dirbuf: %s, dbb_backend->db_name: %s, "
 	        //		        "FLAGS_db: %s\n", dir, dirbuf, dbb_backend->db_name, FLAGS_db);
 	        FLAGS_db = dir;

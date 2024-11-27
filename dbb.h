@@ -165,6 +165,9 @@ extern int FLAGS_use_existing_db;
 // specify underlying DB number of shards - default is 1
 extern int FLAGS_db_shards;
 
+// specify underlying DB type - can be TreeDBM or HashDBM - default is HashDBM
+extern int FLAGS_use_btree_db;
+
 // Use the db with the following name.
 extern const char* FLAGS_db;
 

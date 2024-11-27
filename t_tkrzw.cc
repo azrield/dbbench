@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <cxxabi.h> // For abi::__cxa_demangle
 
 #include "dbb.h"
 
@@ -39,40 +40,55 @@ static int FLAGS_open_files = 0;
 static DBM* db = nullptr;
 
 static void db_open(int dbflags) {
+    const char * internal_db_type;
     if(FLAGS_db_shards <= 1) {
-        auto file = std::make_unique<PositionalParallelFile>();
-        HashDBM* hash_db = new HashDBM(std::move(file));
+        PolyDBM* poly_db = new PolyDBM();
 
-        HashDBM::TuningParameters params;
-        params.update_mode = HashDBM::UPDATE_APPENDING;
-        params.cache_buckets = FLAGS_cache_size > 0 ? FLAGS_cache_size : -1;
-        params.num_buckets = 1000000;
-
-        Status s = hash_db->OpenAdvanced(FLAGS_db, true,
+        std::map<std::string, std::string> params =
+        {
+                {"dbm", FLAGS_use_btree_db ? "TreeDBM" : "HashDBM"},
+                {"num_buckets", "1000000"},
+                {"file", "positionalparallelfile"},
+                {"cache_buckets", FLAGS_cache_size > 0 ? "1" : "-1"},
+                {"update_mode", "UPDATE_APPENDING"}
+        };
+        Status s = poly_db->OpenAdvanced(
+                FLAGS_db,
+                true,
                 FLAGS_use_existing_db ? File::OPEN_DEFAULT : File::OPEN_TRUNCATE,
                         params).OrDie();
 
         if (!s.IsOK()) {
             fprintf(stderr, "Open error: %s\n", s.GetMessage().c_str());
-            delete hash_db;
+            delete poly_db;
             exit(1);
         }
         //    fprintf(stdout, "Opened DB: %s\n", FLAGS_db);
-        db = hash_db;
+        db = poly_db;
+        internal_db_type = poly_db->GetInternalDBM()->GetType().name();
     }
     else {
         ShardDBM* shard_db = new ShardDBM();
 
-        std::map<std::string, std::string> shard_db_params = {
+        std::map<std::string, std::string> shard_db_params =
+        {
                 {"num_shards", std::to_string(FLAGS_db_shards)},
-                {"dbm", "HashDBM"},
+                {"dbm", FLAGS_use_btree_db ? "TreeDBM" : "HashDBM"},
+                {"num_buckets", "1000000"},
                 {"file", "positionalparallelfile"},
-                {"update_mode", "UPDATE_APPENDING"},
-                {"cache_buckets", "true"},
-                {"num_buckets", "1000000"}
+                {"cache_buckets", FLAGS_cache_size > 0 ? "1" : "-1"},
+                {"update_mode", "UPDATE_APPENDING"}
         };
 
-        Status s = shard_db->OpenAdvanced(FLAGS_db, true,
+        std::string db_name(FLAGS_db);
+        bool ends_with_asterix = false;
+        if(db_name.ends_with('*')) {
+            db_name.pop_back();
+            ends_with_asterix = true;
+        }
+        Status s = shard_db->OpenAdvanced(
+                db_name.c_str(),
+                true,
                 FLAGS_use_existing_db ? File::OPEN_DEFAULT : File::OPEN_TRUNCATE,
                         shard_db_params).OrDie();
 
@@ -83,12 +99,29 @@ static void db_open(int dbflags) {
         }
         //    fprintf(stdout, "Opened DB: %s\n", FLAGS_db);
         db = shard_db;
-        std::string base_name = FLAGS_db;
-        std::string suffix = "-*-of-*";
-        std::string full_name = base_name + suffix;
-        FLAGS_db = full_name.c_str();
-        fprintf(stdout, "FLAGS_db: %s, full_name: %s\n", FLAGS_db, full_name.c_str());
+        if(!ends_with_asterix) {
+            std::string base_name = FLAGS_db;
+            std::string suffix = "*";
+            std::string full_name = base_name + suffix;
+            FLAGS_db = strdup(full_name.c_str());
+        }
+        internal_db_type = shard_db->GetInternalDBM()->GetType().name();
     }
+
+    const char* mangled_name = db->GetType().name();
+    int status0 = 0;
+    int status1 = 0;
+
+    // Demangle the type name
+    std::unique_ptr<char, void(*)(void*)> demangled_name(
+            abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status0),
+            std::free);
+    std::unique_ptr<char, void(*)(void*)> demangled_internal_name(
+            abi::__cxa_demangle(internal_db_type, nullptr, nullptr, &status1),
+            std::free);
+    fprintf(stdout, "DB type: %s, internal type: %s\n",
+            status0 == 0 ? demangled_name.get() : mangled_name,
+            status1 == 0 ? demangled_internal_name.get() : internal_db_type);
 }
 
 static void db_close() {
