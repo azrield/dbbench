@@ -162,6 +162,9 @@ extern int FLAGS_histogram;
 // benchmark will fail.
 extern int FLAGS_use_existing_db;
 
+// specify underlying DB number of shards - default is 1
+extern int FLAGS_db_shards;
+
 // Use the db with the following name.
 extern const char* FLAGS_db;
 

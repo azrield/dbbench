@@ -20,6 +20,8 @@
 #include <tkrzw_dbm_hash.h>
 #include <tkrzw_dbm_tree.h>
 #include <tkrzw_dbm_skip.h>
+#include <tkrzw_dbm_shard.h>
+#include <tkrzw_file_pos.h>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -37,23 +39,56 @@ static int FLAGS_open_files = 0;
 static DBM* db = nullptr;
 
 static void db_open(int dbflags) {
-    HashDBM* hash_db = new HashDBM(/*std::make_unique<PositionalParallelFile>()*/);  // Change this to TreeDBM or SkipDBM if needed
+    if(FLAGS_db_shards <= 1) {
+        auto file = std::make_unique<PositionalParallelFile>();
+        HashDBM* hash_db = new HashDBM(std::move(file));
 
-    HashDBM::TuningParameters params;
-    params.update_mode = HashDBM::UPDATE_APPENDING;
-    params.cache_buckets = FLAGS_cache_size > 0 ? FLAGS_cache_size : -1;
-    params.num_buckets = 1000000;
+        HashDBM::TuningParameters params;
+        params.update_mode = HashDBM::UPDATE_APPENDING;
+        params.cache_buckets = FLAGS_cache_size > 0 ? FLAGS_cache_size : -1;
+        params.num_buckets = 1000000;
 
-    Status s = hash_db->OpenAdvanced(FLAGS_db, true,
-            FLAGS_use_existing_db ? File::OPEN_DEFAULT : File::OPEN_TRUNCATE,
-                    params).OrDie();
-    if (!s.IsOK()) {
-        fprintf(stderr, "Open error: %s\n", s.GetMessage().c_str());
-        delete hash_db;
-        exit(1);
+        Status s = hash_db->OpenAdvanced(FLAGS_db, true,
+                FLAGS_use_existing_db ? File::OPEN_DEFAULT : File::OPEN_TRUNCATE,
+                        params).OrDie();
+
+        if (!s.IsOK()) {
+            fprintf(stderr, "Open error: %s\n", s.GetMessage().c_str());
+            delete hash_db;
+            exit(1);
+        }
+        //    fprintf(stdout, "Opened DB: %s\n", FLAGS_db);
+        db = hash_db;
     }
-//    fprintf(stdout, "Opened DB: %s\n", FLAGS_db);
-    db = hash_db;
+    else {
+        ShardDBM* shard_db = new ShardDBM();
+
+        std::map<std::string, std::string> shard_db_params = {
+                {"num_shards", std::to_string(FLAGS_db_shards)},
+                {"dbm", "HashDBM"},
+                {"file", "positionalparallelfile"},
+                {"update_mode", "UPDATE_APPENDING"},
+                {"cache_buckets", "true"},
+                {"num_buckets", "1000000"}
+        };
+
+        Status s = shard_db->OpenAdvanced(FLAGS_db, true,
+                FLAGS_use_existing_db ? File::OPEN_DEFAULT : File::OPEN_TRUNCATE,
+                        shard_db_params).OrDie();
+
+        if (!s.IsOK()) {
+            fprintf(stderr, "Open error: %s\n", s.GetMessage().c_str());
+            delete shard_db;
+            exit(1);
+        }
+        //    fprintf(stdout, "Opened DB: %s\n", FLAGS_db);
+        db = shard_db;
+        std::string base_name = FLAGS_db;
+        std::string suffix = "-*-of-*";
+        std::string full_name = base_name + suffix;
+        FLAGS_db = full_name.c_str();
+        fprintf(stdout, "FLAGS_db: %s, full_name: %s\n", FLAGS_db, full_name.c_str());
+    }
 }
 
 static void db_close() {

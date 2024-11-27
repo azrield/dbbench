@@ -91,6 +91,9 @@ int FLAGS_use_existing_db = 0;
 // If true, running on a raw device
 int FLAGS_rawdev = 0;
 
+// Maximum number of threads.
+int FLAGS_db_shards = 1;
+
 // Use the db with the following name.
 const char* FLAGS_db = NULL;
 
@@ -387,6 +390,8 @@ static void PrintHeader() {
 			FLAGS_value_size,
 			(int)(FLAGS_value_size * FLAGS_compression_ratio + 0.5));
 	fprintf(stdout, "Entries:	%ld\n", FLAGS_num);
+	if(FLAGS_db_shards > 1)
+	    fprintf(stdout, "DB Shards:   %ld\n", FLAGS_db_shards);
 	fprintf(stdout, "RawSize:	%.1f MB (estimated)\n",
 			(((int64_t)(FLAGS_key_size + FLAGS_value_size) * FLAGS_num)
 			 / 1048576.0));
@@ -720,6 +725,7 @@ static arg_desc main_args[] = {
 	{ "writes_per_second", arg_int, &FLAGS_writes_per_second },
 	{ "value_size", arg_int, &FLAGS_value_size },
 	{ "key_size", arg_int, &FLAGS_key_size },
+	{ "shards", arg_int, &FLAGS_db_shards },
 	{ "db", arg_string, &FLAGS_db },
 	{ NULL }
 };
