@@ -22,6 +22,7 @@ static int FLAGS_writemap = 1;
 // The Linux kernel does readahead by default
 static int FLAGS_readahead = 1;
 
+static int FLAGS_dbbsync = 0;
 #ifdef MDB_DIRECTIO
 // Use direct I/O
 static int FLAGS_directio = 0;
@@ -49,33 +50,60 @@ static void db_open(int flags) {
 		exit(1);
 	}
 
+	fprintf(stdout, "flags: %d, FLAGS_dbbsync: %d, FLAGS_metasync: %d\n",
+	        flags, FLAGS_dbbsync, FLAGS_metasync);
+	env_opt = flags;
 	if (flags != DBB_SYNC)
-		env_opt = MDB_NOSYNC;
+		env_opt = FLAGS_dbbsync ? DBB_SYNC : MDB_NOSYNC;
 	else if (!FLAGS_metasync)
 		env_opt = MDB_NOMETASYNC;
 
+//	fprintf(stdout, "env_opt: %d, FLAGS_writemap: %d, MDB_WRITEMAP: %d\n",
+//	        env_opt, FLAGS_writemap, MDB_WRITEMAP);
 	if (FLAGS_writemap)
 		env_opt |= MDB_WRITEMAP;
+//	fprintf(stdout, "env_opt: %d, FLAGS_readahead: %d, MDB_NORDAHEAD: %d\n",
+//	        env_opt, FLAGS_readahead, MDB_NORDAHEAD);
 	if (!FLAGS_readahead)
 		env_opt |= MDB_NORDAHEAD;
+//	fprintf(stdout, "env_opt: %d\n", env_opt);
 #ifdef MDB_CLEANMEM
+    fprintf(stdout, "env_opt: %d, FLAGS_cleanmem: %d, MDB_CLEANMEM: %d\n",
+            env_opt, FLAGS_cleanmem, MDB_CLEANMEM);
 	if (FLAGS_cleanmem)
 		env_opt |= MDB_CLEANMEM;
+    fprintf(stdout, "env_opt: %d\n", env_opt);
 #endif
 #ifdef MDB_DIRECTIO
+    fprintf(stdout, "env_opt: %d, FLAGS_directio: %d, MDB_DIRECTIO: %d\n",
+            env_opt, FLAGS_directio, MDB_DIRECTIO);
 	if (FLAGS_directio)
 		env_opt |= MDB_DIRECTIO;
+    fprintf(stdout, "env_opt: %d\n", env_opt);
 #endif
 
 	// Create tuning options and open the database
 	rc = mdb_env_create(&env);
-	msize = FLAGS_num*32L*FLAGS_value_size/10;
+	const size_t page_size = 4096;
+	msize = 10 * (FLAGS_num*(FLAGS_value_size+FLAGS_key_size)*10 + page_size -
+	        1) / page_size * page_size;
 #ifdef MDB_DIRECTIO
 	if (FLAGS_pagesize)
 		rc = mdb_env_set_pagesize(env, FLAGS_pagesize);
 #endif
+	fprintf(stdout, "Mapsize: %ld, num entries: %ld\nenv_opt: %d, flags: "
+	        "DBB_SYNC: %d, MDB_NOSYNC: %d, MDB_NOMETASYNC: %d, "
+	        "MDB_WRITEMAP: %d, MDB_NORDAHEAD: %d\n",
+	        msize, FLAGS_num, env_opt,
+	        (env_opt & DBB_SYNC) ?  1 : 0,
+	        (env_opt & MDB_NOSYNC) ?  1 : 0,
+	        (env_opt & MDB_NOMETASYNC) ? 1 : 0,
+	        (env_opt & MDB_WRITEMAP) ? 1 : 0,
+	        (env_opt & MDB_NORDAHEAD) ?  1 : 0);
+
 	rc = mdb_env_set_mapsize(env, msize);
 	rc = mdb_env_set_maxreaders(env, FLAGS_max_threads + 2);
+//	env_opt = MDB_NOSYNC;
 	rc = mdb_env_open(env, FLAGS_db, env_opt, 0664);
 	if (rc) {
 		fprintf(stderr, "open error: %s\n", mdb_strerror(rc));
@@ -254,7 +282,8 @@ static char *db_verstr() {
 }
 
 static arg_desc db_opts[] = {
-	{ "metasync", arg_onoff, &FLAGS_metasync },
+    { "dbbsync", arg_onoff, &FLAGS_dbbsync },
+    { "metasync", arg_onoff, &FLAGS_metasync },
 	{ "writemap", arg_onoff, &FLAGS_writemap },
 	{ "readahead", arg_onoff, &FLAGS_readahead },
 	{ "intkey", arg_onoff, &FLAGS_intkey },

@@ -9,7 +9,7 @@ TESTOBJS = t_bdb.o t_lmdb.o t_leveldb.o t_basho.o t_hyper.o t_rocksdb.o \
            t_pebbles.o t_tkrzw.o
 
 BINDIR = bin
-TESTS = $(BINDIR)/t_tkrzw
+TESTS = $(BINDIR)/t_tkrzw $(BINDIR)/t_lmdb
 
 OPT = -O2 -DNDEBUG
 CC = gcc -pthread -g -DNDEBUG
