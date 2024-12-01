@@ -389,18 +389,20 @@ static void PrintEnvironment() {
 static void PrintHeader() {
 	PrintEnvironment();
 	fprintf(stdout, "Keys:	   %d bytes each\n", FLAGS_key_size);
-	fprintf(stdout, "Values:	 %d bytes each (%d bytes after compression)\n",
-			FLAGS_value_size,
-			(int)(FLAGS_value_size * FLAGS_compression_ratio + 0.5));
+	fprintf(stdout, "Values:	 %d bytes each ",
+			FLAGS_value_size);
+	if(FLAGS_compression)
+	    fprintf(stdout, "(%d bytes after compression)",
+	            (int)(FLAGS_value_size * FLAGS_compression_ratio + 0.5));
+	fprintf(stdout, "\n");
 	fprintf(stdout, "Entries:	%ld\n", FLAGS_num);
 	if(FLAGS_db_shards > 1)
 	    fprintf(stdout, "DB Shards:   %d\n", FLAGS_db_shards);
-	fprintf(stdout, "DB type:   %s\n", FLAGS_use_btree_db ? "TreeDBM" : "HashDBM");
 	fprintf(stdout, "RawSize:	%.1f MB (estimated)\n",
 			(((int64_t)(FLAGS_key_size + FLAGS_value_size) * FLAGS_num)
 			 / 1048576.0));
 	fprintf(stdout, "FileSize:   %.1f MB (estimated)\n",
-			(((FLAGS_key_size + FLAGS_value_size * FLAGS_compression_ratio) * FLAGS_num)
+			(((FLAGS_key_size + FLAGS_value_size * (FLAGS_compression ? FLAGS_compression_ratio : 1)) * FLAGS_num)
 			 / 1048576.0));
 	PrintWarnings();
 	fprintf(stdout, "------------------------------------------------\n");

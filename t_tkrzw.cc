@@ -47,11 +47,14 @@ static void db_open(int dbflags) {
         std::map<std::string, std::string> params =
         {
                 {"dbm", FLAGS_use_btree_db ? "TreeDBM" : "HashDBM"},
-                {"num_buckets", "1000000"},
+                {"num_buckets", "10000000"},
                 {"file", "positionalparallelfile"},
                 {"cache_buckets", FLAGS_cache_size > 0 ? "1" : "-1"},
                 {"update_mode", "UPDATE_APPENDING"}
         };
+//        if(FLAGS_use_btree_db)
+//            params["page_update_mode"]="PAGE_UPDATE_WRITE";
+
         Status s = poly_db->OpenAdvanced(
                 FLAGS_db,
                 true,
@@ -74,11 +77,13 @@ static void db_open(int dbflags) {
         {
                 {"num_shards", std::to_string(FLAGS_db_shards)},
                 {"dbm", FLAGS_use_btree_db ? "TreeDBM" : "HashDBM"},
-                {"num_buckets", "1000000"},
+                {"num_buckets", "10000000"},
                 {"file", "positionalparallelfile"},
                 {"cache_buckets", FLAGS_cache_size > 0 ? "1" : "-1"},
                 {"update_mode", "UPDATE_APPENDING"}
         };
+//        if(FLAGS_use_btree_db)
+//            shard_db_params["page_update_mode"]="PAGE_UPDATE_WRITE";
 
         std::string db_name(FLAGS_db);
         bool ends_with_asterix = false;
